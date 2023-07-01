@@ -86,13 +86,22 @@ namespace TimePunchClock.Controllers
                 return View("LogIn");
             }
             //successfully Log in
-            return RedirectToAction("Index", "Home");
+            if (ModelState.IsValid)
+            {
+                HttpContext.Session.SetString("UserEmail", Email);
+                TempData["Notice"] = $"Welcome {Email}";
+                 return RedirectToAction("Index", "Home");
+            }
+            TempData["Alert"] = "Something wrong.";
+
+            return View("LogIn");
         }
 
-        [HttpDelete]
         public IActionResult LogOut()
         {
-            return View();
+            HttpContext.Session.Clear();
+            HttpContext.Session.Remove("UserEmail");
+            return RedirectToAction("Index", "Home");
         }
 
         public bool PasswordMatchValidation(string password, string passwordConfirm)
