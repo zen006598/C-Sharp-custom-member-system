@@ -19,8 +19,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Remove="Data\" />
+    <None Remove="ControllersHelper\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Data\" />
+    <Folder Include="ControllersHelper\" />
   </ItemGroup>
 </Project>

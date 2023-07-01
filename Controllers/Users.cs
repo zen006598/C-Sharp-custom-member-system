@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TimePunchClock.Models;
 using TimePunchClock.Data;
+using TimePunchClock.ControllersHelper;
 
 namespace TimePunchClock.Controllers
 {
@@ -25,19 +26,27 @@ namespace TimePunchClock.Controllers
         [HttpPost]
         public IActionResult Register(CreateUser UserReq)
         {
+            //Declare
+            string Email = UserReq.Email.Trim();
             string Password = UserReq.Password.Trim();
             string PasswordConfirm = UserReq.PasswordConfirm.Trim();
+            byte[] salt;
+            //validation
             PasswordMatchValidation(Password, PasswordConfirm);
-            Password = Salting(Password);
+            IsRepeat(Email);
+            //salting
+            string saltedPassword = PasswordHelper.HashPassword(Password, out salt);
+            //save
             if (ModelState.IsValid)
             {
                 var User = new User()
                 {
                     Id = Guid.NewGuid(),
-                    Email = UserReq.Email,
-                    Password = Password,
+                    Email = Email,
+                    Password = saltedPassword,
                     CreateAt = DateTime.Now,
                     UpdateAt = DateTime.Now,
+                    Salt = Convert.ToBase64String(salt),
                 };
                 UserContext.User.Add(User);
                 UserContext.SaveChanges();
@@ -48,10 +57,36 @@ namespace TimePunchClock.Controllers
             return View("Register");
         }
 
-        [HttpPost]
+        [HttpGet]
         public IActionResult LogIn()
         {
             return View();
+        }
+
+        [HttpPost]
+        public IActionResult LogIn(CreateSession SessionReq)
+        {
+            string Email = SessionReq.Email;
+            string Password = SessionReq.Password;
+            //Look for User
+            var User = UserContext.User.FirstOrDefault(user => user.Email == Email);
+            //Is exist?
+            if (User == null)
+            {
+                ModelState.AddModelError("Password", "Email or password is wrong.");
+                return View("LogIn");
+            }
+
+            string UserPassword = User.Password;
+            byte[] Salt = Convert.FromBase64String(User.Salt);
+            //Compare the HashPassword
+            if (!PasswordHelper.VerifyPassword(Password, UserPassword, Salt))
+            {
+                ModelState.AddModelError("Password", "Password is wrong.");
+                return View("LogIn");
+            }
+            //successfully Log in
+            return RedirectToAction("Index", "Home");
         }
 
         [HttpDelete]
@@ -70,10 +105,15 @@ namespace TimePunchClock.Controllers
             return true;
         }
 
-        public string Salting(string orgPassword)
+        private bool IsRepeat(string email)
         {
-            string saltingPassword;
-            return SaltingPassword;
+            var user = UserContext.User.FirstOrDefault(u => u.Email == email);
+            if (user != null)
+            {
+                ModelState.AddModelError("Email", "Email already exists.");
+                return true;
+            }
+            return false;
         }
     }
 }

@@ -19,6 +19,9 @@ namespace TimePunchClock.Models
 
 		[Required]
 		public DateTime UpdateAt { get; set; }
+
+        [Required]
+        public string Salt { get; set; }
     }
 }
 
